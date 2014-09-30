@@ -1,8 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 int main(int argc, char** argv) {
+	char** argVals = NULL;
+	int argNum = 0;
 	int i;
 	int pid;
 	int running;
@@ -22,6 +25,12 @@ int main(int argc, char** argv) {
 
 		/* parse input */
 
+		/* builtins */
+
+		if(!strcmp(argVals[0], "exit")) {
+			running = 0;
+		}
+
 		/* fork */
 
 		pid = fork();
@@ -34,9 +43,7 @@ int main(int argc, char** argv) {
 		/* child -- exec command */
 
 		if(pid == 0) {
-			/* builtins */
-
-			/* exec */
+			execvp(argVals[0], argVals);
 		}
 
 		/* parent --  wait for child */
@@ -44,6 +51,14 @@ int main(int argc, char** argv) {
 		if(pid > 0) {
 		}
 	}
+
+	/* Clean Up */
+
+	for(i = 0; i < argNum; i++) {
+		free(argVals[i]);
+	}
+
+	free(argVals);
 
 	exit(0);
 }

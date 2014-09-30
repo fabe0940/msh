@@ -3,25 +3,29 @@
 #include "list.h"
 
 void listAdd(struct node* head, char newch) {
-	struct node* tail;
+	struct node* new;
 	struct node* tmp;
+	struct node* tail;
 
-	tail = head;
-	tmp = tail;
+	new = malloc(1 * sizeof(struct node));
+	(*new).ch = newch;
+	(*new).next = NULL;
 
-	while(tail != NULL) {
-		tmp = tail;
-		tail = (*tail).next;
+	if(head != NULL) {
+		tail = head;
+
+		while(tail != NULL) {
+			tmp = tail;
+			tail = (*tail).next;
+		}
+
+		tail = tmp;
+
+		(*tail).next = new;
+
+	} else {
+		head = new;
 	}
-
-	tail = tmp;
-
-	tmp = malloc(1 * sizeof(struct node));
-
-	(*tmp).ch = newch;
-	(*tmp).next = NULL;
-
-	(*tail).next = tmp;
 
 	return;
 }

@@ -6,8 +6,9 @@ struct node {
 	struct node* next;
 };
 
-void listAdd(struct node* head, char newch);
-void listFree(struct node* head);
+void listAdd(struct node** head, char newch);
+void listFree(struct node** head);
+void listPrint(struct node** head);
 char* listToString(struct node* head);
 
 #endif

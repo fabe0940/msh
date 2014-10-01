@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "list.h"
 
-void listAdd(struct node* head, char newch) {
+void listAdd(struct node** head, char newch) {
 	struct node* new;
 	struct node* tmp;
 	struct node* tail;
@@ -11,8 +11,8 @@ void listAdd(struct node* head, char newch) {
 	(*new).ch = newch;
 	(*new).next = NULL;
 
-	if(head != NULL) {
-		tail = head;
+	if(*head != NULL) {
+		tail = *head;
 
 		while(tail != NULL) {
 			tmp = tail;
@@ -24,26 +24,41 @@ void listAdd(struct node* head, char newch) {
 		(*tail).next = new;
 
 	} else {
-		head = new;
+		*head = new;
 	}
 
 	return;
 }
 
-void listFree(struct node* head) {
+void listFree(struct node** head) {
 	struct node* tmp;
 
-	tmp = head;
+	tmp = *head;
 
-	while(head != NULL) {
-		tmp = (*head).next;
-		free(head);
-		head = tmp;
+	while(*head != NULL) {
+		tmp = (**head).next;
+		free(*head);
+		*head = tmp;
 	}
 
 	return;
 }
-	
+
+void listPrint(struct node** head) {
+	struct node* tmp;
+
+	tmp = *head;
+
+	fprintf(stdout, "LIST:\n");
+	while(tmp != NULL) {
+		fprintf(stdout, "%c -> ", (*tmp).ch);
+		tmp = (*tmp).next;
+	}
+	fprintf(stdout, "\n");
+
+	return;
+}
+
 char* listToString(struct node* head) {
 	char* str;
 	int i;

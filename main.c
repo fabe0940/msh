@@ -6,93 +6,82 @@
 #include <sys/wait.h>
 #include "list.h"
 #include "makearg.h"
-
 int main(int argc, char** argv) {
+  /* variables */
+  char buff;
+	char* str;
+  char** argVals;
+  int argNum;
+  int i;
+  int running;
+  int status;
+  pid_t pid;
+  struct node* head;
 
-	/* variables */
+  /* process arguments */
 
-	char buff;
-	char** argVals;
-	int argNum;
-	int i;
-	int running;
-	int status;
-	pid_t pid;
-	struct node* head;
+  /* initialize */
+  argNum = 0;
+  running = 1;
+  head = NULL;
+  argVals = NULL;
 
-	/* process arguments */
+  /* main loop */
+  while(running) {
 
-	/* initialize */
+    /* get input */
+    fprintf(stdout, "?: ");
+    do {
+      buff = (char) getchar();
+      listAdd(&head, buff);
+    } while(buff != '\n');
 
-	argNum = 0;
-	running = 1;
-	head = NULL;
-	argVals = NULL;
+    
+    /* parse input */
 
-	/* main loop */
 
-	while(running) {
+	str = listToString(head);
+    
+    argNum = makearg(str, &argVals);
 
-		/* get input */
+	free(str);
+	str = NULL;
+    listFree(&head);
+    head = NULL;
 
-		fprintf(stdout, "?: ");
+    /* builtins */
+    if(!strcmp(argVals[0], "exit")) {
+      running = 0;
+      break;
+    }
 
-		do {
-			buff = (char) getchar();
-			listAdd(&head, buff);
-		} while(buff != '\n');
+    /* fork */
+    pid = fork();
+    if(pid == -1) {
 
-		/* parse input */
+      /* error */
+      fprintf(stderr, "msh: unable to fork.\n");
+      break;
+    } else if(pid == 0) {
 
-		free(argVals);
-		argVals = NULL;
-		argNum = makearg(listToString(head), &argVals);
+      /* child -- exec command */
+      if(execvp(argVals[0], argVals) == -1) {
+	fprintf(stderr, "msh: unable to execute %s\n", argVals[0]);
+	exit(1);
+      }
+      exit(0);
+    } else if(pid > 0) {
 
-		listFree(&head);
-		head = NULL;
+      /* parent -- wait for child */
+      wait(&status);
+    }
+  for(i = 0; i < argNum; i++) {
+    free(argVals[i]);
+  }
+  free(argVals);
+    
+  }
 
-		/* builtins */
-
-		if(!strcmp(argVals[0], "exit")) {
-			running = 0;
-			break;
-		}
-
-		/* fork */
-
-		pid = fork();
-
-		if(pid == -1) {
-			/* error */
-			fprintf(stderr, "msh: unable to fork.\n");
-			break;
-		} else if(pid == 0) {
-			/* child -- exec command */
-			fprintf(stdout, "ARGVALS:\n");
-			for(i = 0; argVals[i] != NULL; i++) {
-				fprintf(stdout, "  %i:%s\n", i, argVals[i]);
-			}
-
-			if(execvp(argVals[0], argVals) == -1) {
-				fprintf(stderr, "msh: unable to execute %s\n", argVals[0]);
-				exit(1);
-			}
-
-			exit(0);
-
-		} else if(pid > 0) {
-			/* parent --  wait for child */
-			wait(&status);
-		}
-	}
-
-	/* Clean Up */
-
-	for(i = 0; i < argNum; i++) {
-		free(argVals[i]);
-	}
-
-	free(argVals);
-
-	exit(0);
+  /* Clean Up */ 
+  exit(0);
 }

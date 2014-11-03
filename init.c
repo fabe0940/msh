@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,11 +31,9 @@ void mshInit(status* s) {
 	if(hist == NULL) {
 		/* do nothing */
 	} else {
-/*
 		while(getline(&buf, &len, hist) != -1) {
 			histAdd(&(s->history), buf, NULL);
 		}
-*/
 
 		fclose(hist);
 	}

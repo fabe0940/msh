@@ -1,23 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "types.h"
+#include "err.h"
 
 #include "hist.h"
 
-/*
-struct _histNode {
-	int index;
-	command* cmd;
-	struct _histNode* prev;
-	struct _histNode* next;
-};
-typedef struct _histNode histNode;
-*/
-
-int histCounter = 0;
 histNode* histCurrent = NULL;
 
-int histInit(void) {
+int histInit(histNode** hist) {
 	int err;
 	int i;
 	histNode* first;
@@ -27,21 +16,20 @@ int histInit(void) {
 	while(!err && i < 20) {
 		last = (histNode*) malloc(sizeof(histNode));
 		if(last == NULL) {
-			err = 1;
-			break;
+			error(ERR_MALLOC);
 		}
 
 		last->index = -1;
 		last->cmd = NULL;
-		last->prev = histCurrent;
+		last->prev = (*hist);
 		last->next = NULL;
 
-		if(histCurrent == NULL) {
+		if((*hist) == NULL) {
 			first = last;
 		} else {
-			histCurrent->next = last;
+			(*hist)->next = last;
 		}
-		histCurrent = last;
+		(*hist) = last;
 
 		i++;
 	}
@@ -52,37 +40,30 @@ int histInit(void) {
 	return err;
 }
 
-int histPrint(void) {
-	int i;
+int histPrint(histNode** hist) {
 	histNode* n;
 
-	n = histCurrent;
+	n = (*hist);
 	while(n->index != -1 && n->index > (n->prev)->index) {
-		i=0;
-		while((*(n->cmd))[i] != NULL) {
-			fprintf(stdout, "%s ", (*(n->cmd))[i]);
-			i++;
-		}
-		fprintf(stdout, "\n");
-
+		fprintf(stdout, "%s", n->cmd);
 		n = n->prev;
 	}
 
 	return 0;
 }
 
-int histAdd(command* cmd, FILE* histfile) {
-	int i = 0;
+int histAdd(histNode** hist, char* cmd, FILE* histfile) {
+	static int histCounter = 0;
 
-	histCurrent = histCurrent->next;
-	histCurrent->cmd = cmd;
-	histCurrent->index = ++histCounter;
+	(*hist) = (*hist)->next;
+	(*hist)->cmd = cmd;
+	(*hist)->index = ++histCounter;
 
-	while((*cmd)[i] != NULL) {
-		fprintf(histfile, "%s ", (char*) (*cmd)[i]);
-		i++;
+	if(histfile == NULL) {
+		error(ERR_NULL);
 	}
-	fprintf(histfile, "\n");
+
+	fprintf(histfile, "%s", cmd);
 
 	return 0;
 }

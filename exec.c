@@ -30,10 +30,6 @@ void mshExec(status* s) {
 		argc = makearg(str, &argv);
 		free(str);
 
-		for(i = 0; argv[i] != NULL; i++) {
-			fprintf(stdout, "[%i] %s\n", i, argv[i]);
-		}
-
 		if(argc == -1) {
 			error("makearg: invalid input");
 		} else if(argc == 0) {

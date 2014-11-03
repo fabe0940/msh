@@ -7,87 +7,71 @@
 #include "list.h"
 #include "status.h"
 
-void _addCmd(cmdNode** head, char* cmd);
-int _numLen(int n);
+void _split(cmdNode** head, listNode* l, char div);
+int _compare(listNode* l, char* str);
+void _replace(listNode** l, char* find, char* repl);
 
 void mshEval(status* s) {
-	int i;
-	char* path;
-	cmdNode* cmd;
-	cmdNode* cmdTail;
-	listNode* curr;
 	listNode* head;
-	listNode* new;
-	listNode* next;
-	listNode* prev;
-	listNode* tmpCurr;
-	listNode* tmpHead;
-	listNode* tmpTail;
 
 	head = s->command->command;
 	free(s->command);
 	s->command = NULL;
 
-	curr = head;
-	prev = NULL;
+	_replace(&head, "!!", s->history->cmd);
+	histAdd(&(s->history), listToString(head), s->histfile);
+	_split(&(s->command), head, ';');
+
+	return;
+}
+
+void _split(cmdNode** head, listNode* l, char div) {
+	listNode* first;
+	listNode* curr;
+	listNode* new;
+	listNode* tmp;
+	cmdNode* cmd;
+	cmdNode* cmdTail;
+
+	first = l;
+	curr = first;
+	new = NULL;
+
 	while(curr != NULL) {
-		if(curr->ch == '!') {
-			if(curr->next != NULL && curr->next->ch == '!') {
-				next = curr->next->next;
-
-				for(i = 0; i < (int) strlen(s->history->cmd); i++) {
-					if((s->history->cmd)[i] != '\n') {
-						listAdd(&prev, (s->history->cmd)[i]);
-					}
-				}
-
-				curr = prev;
-				while(curr != NULL && curr->next != NULL) {
-					curr = curr->next;
-				}
-
-				listPrint(&prev);
-				fprintf(stdout, "\n\n\n");
-				listPrint(&next);
-				curr->next = next;
-				curr = curr->next;
-				head = prev;
+		if(curr->ch == div || curr->next == NULL) {
+			cmd = malloc(sizeof(cmdNode));
+			if(cmd == NULL) {
+				error(ERR_MALLOC);
 			}
-		} else if(curr->ch == '$') {
-			if((curr->next != NULL && curr->next->ch == 'P') && (curr->next->next != NULL && curr->next->next->ch == 'A') && (curr->next->next->next != NULL && curr->next->next->next->ch == 'T') && (curr->next->next->next->next != NULL && curr->next->next->next->next->ch == 'H')) {
-				next = curr->next->next->next->next->next;
 
-				path = getenv("PATH");
-				for(i = 0; i < (int) strlen(path); i++) {
-					listAdd(&prev, path[i]);
-				}
+			cmd->command = NULL;
+			cmd->next = NULL;
 
-				curr = prev;
-				while(curr != NULL && curr->next != NULL) {
-					curr = curr->next;
-				}
-
-				listPrint(&prev);
-				fprintf(stdout, "\n\n\n");
-				listPrint(&next);
-/*
-				curr->next = next;
-				listPrint(&head);
-				curr = curr->next;
-				head = prev;
-*/
+			for(tmp = first; tmp != curr; tmp = tmp->next) {
+				listAdd(&(cmd->command), tmp->ch);
 			}
+
+			cmdTail = *head;
+			if(cmdTail != NULL) {
+				while(cmdTail->next != NULL) {
+					cmdTail = cmdTail->next;
+				}
+				cmdTail->next = cmd;
+			} else {
+				*head = cmd;
+			}
+
+			first = curr->next;
 		}
-		prev = curr;
+
 		curr = curr->next;
 	}
 
-	histAdd(&(s->history), listToString(head), s->histfile);
-
-	curr = head;
+/*
+	curr = l;
 	while(curr != NULL) {
-		if(curr->ch == ';' || curr->next == NULL) {
-			tmpCurr = head;
+		if(curr->ch == div || curr->next == NULL) {
+			tmpCurr = l;
 			tmpHead = NULL;
 			tmpTail = NULL;
 			while(tmpCurr != curr) {
@@ -118,143 +102,92 @@ void mshEval(status* s) {
 			cmd->command = tmpHead;
 			cmd->next = NULL;
 
-			if(s->command == NULL) {
-				s->command = cmd;
+			if(*head == NULL) {
+				*head = cmd;
 			} else {
-				cmdTail = s->command;
+				cmdTail = *head;
 
 				while(cmdTail->next != NULL) {
-					/* do nothing */
+					* do nothing *
 				}
 
 				cmdTail->next = cmd;
 			}
 
-			head = curr->next;
+			l = curr->next;
 		}
 
 		curr = curr->next;
 	}
-/*
+	*/
 
-	str = malloc(sizeof(s->command->command) + 1);
-	if(str == NULL) {
-		error(ERR_MALLOC);	
+	return;
+}
+
+int _compare(listNode* l, char* str) {
+	int i;
+	int result;
+	listNode* n;
+
+	n = l;
+	i = 0;
+	result = 1;
+	while(result && n != NULL && i < (int) strlen(str)) {
+		result = result && (n->ch == str[i]);
+		n = n->next;
+		i++;
 	}
 
-	strcpy(str, s->command->command);
+	return result;
+}
 
-	free(s->command->command);
-	free(s->command);
-	s->command = NULL;
+void _replace(listNode** l, char* find, char* repl) {
+	int i;
+	listNode* curr;
+	listNode* prev;
+	listNode* next;
+	listNode* tail;
 
-scan:
-	start = str;
-	for(end = start; *end != '\0'; end++) {
-		* do nothing *
-	}
+	curr = *l;
+	prev = NULL;
+	next = NULL;
+	tail = NULL;
 
-	for(ch = start; ch <= end; ch++) {
-		if(*ch == '!') {
-			if(*(++ch) == '!' && s->history->cmd != NULL) {
-				tmp = malloc(((strlen(str) - 2) + (strlen(s->history->cmd))) * sizeof(char) + 1);
-				if(tmp == NULL) {
-					error(ERR_MALLOC);
-				}
-
-				i = 0;
-				j = 0;
-				while(i < (int) (sizeof(tmp) / sizeof(char))) {
-					if(str[j] != '!') {
-						tmp[i] = str[j];
-						i++;
-						j++;
-					} else {
-						strcpy(tmp + i, s->history->cmd);
-						i += strlen(s->history->cmd);
-						j += 2;
-					}
-				}
-
-				free(str);
-				str = tmp;
-				goto scan;
+	while(curr != NULL) {
+		if(_compare(curr, find)) {
+			next = curr;
+			for(i = strlen(find); i > 0; i--) {
+				next = next->next;
 			}
-*
-			} else if(fprintf(stdout, "exec item %i\n", atoi(ch + 1)) && atoi(ch + 1) > 0 && atoi(ch + 1) > s->history->index - 20) {
-				index = atoi(ch + 1);
-				fprintf(stdout, "exec item %i\n", index);
 
-				hist = s->history;
-				while(hist->index != index) {
-					hist = hist->prev;
-				}
-
-				tmp = malloc(((strlen(str) - _numLen(index)) + (strlen(s->history->prev->cmd))) * sizeof(char) + 1);
-
-				i = 0;
-				j = 0;
-				while(i < (int) sizeof(tmp)) {
-					if(str[j] != '!') {
-						tmp[i] = str[j];
-						i++;
-						j++;
-					} else {
-						strcpy(tmp + i, s->history->cmd);
-						i += strlen(s->history->cmd);
-						j += _numLen(index);
-					}
-				}
-				tmp[i] = '\0';
-
-				fprintf(stdout, "replaced: %s", tmp);
-
-				free(str);
-				str = tmp;
-				ch++;
-		} else if(*ch == '$') {
-			if(*(ch + 1) == 'P' && *(ch + 2) == 'A' && *(ch + 3) == 'T' && *(ch + 4) == 'H') {
-				tmp = malloc(((strlen(str) - 5) + (strlen(getenv("PATH")))) * sizeof(char) + 1);
-				if(tmp == NULL) {
-					error(ERR_MALLOC);
-				}
-
-				i = 0;
-				j = 0;
-				while(i < (int) (((strlen(str) - 5) + (strlen(getenv("PATH")))) * sizeof(char)) && j < (int) strlen(str)) {
-					if(str[j] != '$') {
-						tmp[i] = str[j];
-						i++;
-						j++;
-					} else {
-						strcpy(tmp + i, getenv("PATH"));
-						i += strlen(getenv("PATH"));
-						j += 5;
-					}
-				}
-				tmp[i] = '\0';
-
-				free(str);
-				str = tmp;
+			if(prev != NULL) {
+				prev->next = NULL;
 			}
+
+			if(prev == NULL) {
+				for(i = 0; i < (int) strlen(repl); i++) {
+					if(repl[i] != '\n') listAdd(&prev, repl[i]);
+				}
+
+				*l = prev;
+			} else {
+				for(i = 0; i < (int) strlen(repl); i++) {
+					if(repl[i] != '\n') listAdd(&prev, repl[i]);
+				}
+			}
+
+			tail = prev;
+			while(tail->next != NULL) {
+				tail = tail->next;
+			}
+
+			tail->next = next;
+			curr = tail;
 		}
+
+		prev = curr;
+		curr = curr->next;
 	}
 
-	histAdd(&(s->history), str, s->histfile);
-
-	start = str;
-	for(end = start; *end != '\0'; end++) {
-		* do nothing *
-	}
-
-	for(cmdStart = start, cmdEnd = cmdStart; cmdEnd <= end; cmdEnd++) {
-		if(*cmdEnd == ';' || *cmdEnd == '\0') {
-			*cmdEnd = '\0';
-			_addCmd(&(s->command), cmdStart);
-			cmdStart = cmdEnd + 1;
-		}
-	}
-
-	free(str);
-*/
+	return;
 }

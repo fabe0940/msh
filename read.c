@@ -12,7 +12,6 @@ void _readPrompt(void);
 listNode* _readGetChars(void);
 
 void mshRead(status* s) {
-	char* str;
 	cmdNode* c;
 	listNode* head;
 
@@ -23,15 +22,12 @@ void mshRead(status* s) {
 		error(ERR_NULL);
 	}
 
-	str = listToString(head);
-	listFree(&head);
-
 	c = malloc(sizeof(cmdNode));
 	if(c == NULL) {
 		error(ERR_MALLOC);	
 	}
 
-	c->command = str;
+	c->command = head;
 	c->next = NULL;
 	s->command = c;
 	

@@ -8,6 +8,7 @@
 #include "err.h"
 #include "exec.h"
 #include "hist.h"
+#include "list.h"
 #include "makearg.h"
 #include "status.h"
 
@@ -16,6 +17,7 @@ void _exec(char** argv);
 void mshExec(status* s) {
 	int argc;
 	int i;
+	char* str;
 	char** argv;
 	cmdNode* cmd;
 	histNode* hist;
@@ -24,7 +26,14 @@ void mshExec(status* s) {
 	hist = s->history;
 
 	while(cmd != NULL) {
-		argc = makearg(cmd->command, &argv);
+		str = listToString(cmd->command);
+		argc = makearg(str, &argv);
+		free(str);
+
+		for(i = 0; argv[i] != NULL; i++) {
+			fprintf(stdout, "[%i] %s\n", i, argv[i]);
+		}
+
 		if(argc == -1) {
 			error("makearg: invalid input");
 		} else if(argc == 0) {
@@ -44,9 +53,9 @@ void mshExec(status* s) {
 				free(argv[i]);
 			}
 			free(argv);
-
-			cmd = cmd->next;
 		}
+
+		cmd = cmd->next;
 	}
 
 	return;

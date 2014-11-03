@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+#define HIST_SIZE 20
+
 struct _histNode {
 	int index;
 	char* cmd;

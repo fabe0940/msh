@@ -7,18 +7,21 @@
 #include "cmd.h"
 #include "err.h"
 #include "exec.h"
+#include "hist.h"
 #include "makearg.h"
 #include "status.h"
 
 void _exec(char** argv);
 
 void mshExec(status* s) {
-	int i;
 	int argc;
+	int i;
 	char** argv;
 	cmdNode* cmd;
+	histNode* hist;
 
 	cmd = s->command;
+	hist = s->history;
 
 	while(cmd != NULL) {
 		argc = makearg(cmd->command, &argv);
@@ -29,6 +32,10 @@ void mshExec(status* s) {
 		} else {
 			if(!strcmp(argv[0], "exit")) {
 				s->running = 0;
+			} else if(!strcmp(argv[0], "history")) {
+				histPrint(&(s->history));
+			} else if(!strcmp(argv[0], "cd")) {
+				chdir(argv[1]);
 			} else {
 				_exec(argv);
 			}

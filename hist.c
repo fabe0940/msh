@@ -1,19 +1,17 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "err.h"
-
 #include "hist.h"
 
 histNode* histCurrent = NULL;
 
 int histInit(histNode** hist) {
-	int err;
 	int i;
 	histNode* first;
 	histNode* last;
 
-	err = 0;
-	while(!err && i < 20) {
+	for(i = 0; i < 20; i++) {
 		last = (histNode*) malloc(sizeof(histNode));
 		if(last == NULL) {
 			error(ERR_MALLOC);
@@ -30,40 +28,51 @@ int histInit(histNode** hist) {
 			(*hist)->next = last;
 		}
 		(*hist) = last;
-
-		i++;
 	}
 
 	first->prev = last;
 	last->next = first;
 
-	return err;
+	return 0;
 }
 
 int histPrint(histNode** hist) {
 	histNode* n;
 
-	n = (*hist);
-	while(n->index != -1 && n->index > (n->prev)->index) {
-		fprintf(stdout, "%s", n->cmd);
-		n = n->prev;
-	}
+	n = (*hist)->next;
+
+	do {
+		if(n->index != -1) {
+			fprintf(stdout, "%i: %s", n->index, n->cmd);
+			if((n->cmd)[strlen(n->cmd) - 1] != '\n') {
+				fprintf(stdout, "\n");
+			}
+		}
+		n = n->next;
+	} while(n != (*hist)->next);
 
 	return 0;
 }
 
 int histAdd(histNode** hist, char* cmd, FILE* histfile) {
 	static int histCounter = 0;
+	char* str;
 
-	(*hist) = (*hist)->next;
-	(*hist)->cmd = cmd;
-	(*hist)->index = ++histCounter;
-
-	if(histfile == NULL) {
-		error(ERR_NULL);
+	str = malloc(strlen(cmd) * sizeof(char) + 1);
+	if(str == NULL) {
+		error(ERR_MALLOC);
 	}
 
-	fprintf(histfile, "%s", cmd);
+	strcpy(str, cmd);
+
+	(*hist) = (*hist)->next;
+	(*hist)->cmd = str;
+	(*hist)->index = ++histCounter;
+
+	if(histfile != NULL) {
+		fprintf(histfile, "%s", cmd);
+	}
+
 
 	return 0;
 }

@@ -26,8 +26,6 @@ void mshRead(status* s) {
 	str = listToString(head);
 	listFree(&head);
 
-	histAdd(&(s->history), str, s->histfile);
-
 	c = malloc(sizeof(cmdNode));
 	if(c == NULL) {
 		error(ERR_MALLOC);	

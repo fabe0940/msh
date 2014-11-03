@@ -1,8 +1,9 @@
 CC = gcc
 CFLAGS = $(WARNINGS) $(DEBUG) $(DEFINE)
 DEBUG = -g
-#DEFINE = -DVAR=VAL
-WARNINGS = -ansi -pedantic -Wall -Wextra -D__USE_FIXED_PROTOTYPES__ --std=c89
+#DEFINE = -DPIPING
+DEFINE = -DNOPIPING
+WARNINGS = -ansi -pedantic -Wall -Wextra -D__USE_FIXED_PROTOTYPES__ --std=gnu89
 OBJ = clean.o err.o eval.o exec.o hist.o init.o list.o main.o makearg.o read.o update.o
 #LIBS = -lncurses
 APPLICATION_NAME = msh

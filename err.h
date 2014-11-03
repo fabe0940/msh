@@ -2,6 +2,7 @@
 #define ERR_H
 
 #define ERR_EXEC "msh: command not found"
+#define ERR_EXPORT "msh: export: invalid syntax"
 #define ERR_FILE "msh: unable to access file"
 #define ERR_FORK "msh: unable to fork"
 #define ERR_MALLOC "msh: unable to allocate memory"

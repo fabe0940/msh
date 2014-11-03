@@ -7,26 +7,62 @@
 #include "list.h"
 #include "status.h"
 
-void _split(cmdNode** head, listNode* l, char div);
-int _compare(listNode* l, char* str);
-void _replace(listNode** l, char* find, char* repl);
+int _numDigits(int n);
 
 void mshEval(status* s) {
+	int i;
+	int curr;
+	char* str;
+	histNode* hist;
 	listNode* head;
 
 	head = s->command->command;
 	free(s->command);
 	s->command = NULL;
 
-	_replace(&head, "!!", s->history->cmd);
-	_replace(&head, "$PATH", getenv("PATH"));
+	evalReplace(&head, "!!", s->history->cmd);
+
+	hist = s->history;
+	curr = hist->index;
+	for(i = curr; i > (curr - 20 > 0 ? curr - 20 : 0); i--) {
+		do {
+			hist = hist->prev;
+		} while(hist->index != i && hist != s->history);
+
+		if(hist->index == i) {
+			str = malloc((_numDigits(i) + 2) * sizeof(char));
+			sprintf(str, "!%i", i);
+			evalReplace(&head, str, hist->cmd);
+		}
+	}
+
 	histAdd(&(s->history), listToString(head), s->histfile);
-	_split(&(s->command), head, ';');
+
+	evalReplace(&head, "$PATH", getenv("PATH"));
+
+	evalSplit(&(s->command), head, ';');
 
 	return;
 }
 
-void _split(cmdNode** head, listNode* l, char div) {
+int evalCompare(listNode* l, char* str) {
+	int i;
+	int result;
+	listNode* n;
+
+	n = l;
+	i = 0;
+	result = 1;
+	while(result && n != NULL && i < (int) strlen(str)) {
+		result = result && (n->ch == str[i]);
+		n = n->next;
+		i++;
+	}
+
+	return result;
+}
+
+void evalSplit(cmdNode** head, listNode* l, char div) {
 	listNode* first;
 	listNode* curr;
 	listNode* new;
@@ -52,6 +88,10 @@ void _split(cmdNode** head, listNode* l, char div) {
 				listAdd(&(cmd->command), tmp->ch);
 			}
 
+			if(curr->next == NULL) {
+				listAdd(&(cmd->command), tmp->ch);
+			}
+
 			cmdTail = *head;
 			if(cmdTail != NULL) {
 				while(cmdTail->next != NULL) {
@@ -68,81 +108,10 @@ void _split(cmdNode** head, listNode* l, char div) {
 		curr = curr->next;
 	}
 
-/*
-	curr = l;
-	while(curr != NULL) {
-		if(curr->ch == div || curr->next == NULL) {
-			tmpCurr = l;
-			tmpHead = NULL;
-			tmpTail = NULL;
-			while(tmpCurr != curr) {
-				new = malloc(sizeof(listNode));
-				if(new == NULL) {
-					error(ERR_MALLOC);
-				}
-
-				new->ch = tmpCurr->ch;
-				new->next = NULL;
-
-				if(tmpHead == NULL) {
-					tmpHead = new;
-					tmpTail = tmpHead;
-				} else {
-					tmpTail->next = new;
-					tmpTail = new;
-				}
-
-				tmpCurr = tmpCurr->next;
-			}
-
-			cmd = malloc(sizeof(cmdNode));
-			if(cmd == NULL) {
-				error(ERR_MALLOC);
-			}
-
-			cmd->command = tmpHead;
-			cmd->next = NULL;
-
-			if(*head == NULL) {
-				*head = cmd;
-			} else {
-				cmdTail = *head;
-
-				while(cmdTail->next != NULL) {
-					* do nothing *
-				}
-
-				cmdTail->next = cmd;
-			}
-
-			l = curr->next;
-		}
-
-		curr = curr->next;
-	}
-	*/
-
 	return;
 }
 
-int _compare(listNode* l, char* str) {
-	int i;
-	int result;
-	listNode* n;
-
-	n = l;
-	i = 0;
-	result = 1;
-	while(result && n != NULL && i < (int) strlen(str)) {
-		result = result && (n->ch == str[i]);
-		n = n->next;
-		i++;
-	}
-
-	return result;
-}
-
-void _replace(listNode** l, char* find, char* repl) {
+void evalReplace(listNode** l, char* find, char* repl) {
 	int i;
 	listNode* curr;
 	listNode* prev;
@@ -155,7 +124,7 @@ void _replace(listNode** l, char* find, char* repl) {
 	tail = NULL;
 
 	while(curr != NULL) {
-		if(_compare(curr, find)) {
+		if(evalCompare(curr, find)) {
 			next = curr;
 			for(i = strlen(find); i > 0; i--) {
 				next = next->next;
@@ -191,4 +160,18 @@ void _replace(listNode** l, char* find, char* repl) {
 	}
 
 	return;
+}
+
+int _numDigits(int n) {
+	int result;
+
+	if(n < 0) {
+		result = _numDigits(n * -1);
+	} else if(n < 10) {
+		result = 1;
+	} else {
+		result = 1 + _numDigits(n / 10);
+	}
+
+	return result;
 }

@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include "clean.h"
 #include "cmd.h"
+#include "eval.h"
 #include "exec.h"
 #include "init.h"
 #include "read.h"
@@ -25,7 +26,7 @@ int main(int argc, char** argv) {
 
 	while(s.running) {
 		mshRead(&s);
-		/* eval(&s) */
+		mshEval(&s);
 		mshExec(&s);
 		mshUpdate(&s);
 	}

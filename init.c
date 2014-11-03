@@ -18,10 +18,12 @@ void mshInit(status* s) {
 	}
 
 	sprintf(fname, "%s/%s", getenv("HOME"), ".msh_history");
-	s->histfile = fopen(fname, "w");
+	s->histfile = fopen(fname, "a");
 	if(s->histfile == NULL) {
 		error(ERR_FILE);
 	}
+
+	free(fname);
 
 	s->command = NULL;
 	s->environment = NULL;

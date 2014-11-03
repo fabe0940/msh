@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -23,16 +24,22 @@ void mshExec(status* s) {
 		argc = makearg(cmd->command, &argv);
 		if(argc == -1) {
 			error("makearg: invalid input");
+		} else if(argc == 0) {
+			break;
+		} else {
+			if(!strcmp(argv[0], "exit")) {
+				s->running = 0;
+			} else {
+				_exec(argv);
+			}
+
+			for(i = 0; argv[i] != NULL; i++) {
+				free(argv[i]);
+			}
+			free(argv);
+
+			cmd = cmd->next;
 		}
-
-		_exec(argv);
-
-		for(i = 0; i < argc; i++) {
-			free(argv[i]);
-		}
-		free(argv);
-
-		cmd = cmd->next;
 	}
 
 	return;

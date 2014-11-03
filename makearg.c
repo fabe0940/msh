@@ -27,61 +27,58 @@ int makearg(char* s, char*** args) {
 	int i;
 	int argc;
 	char* ch;
+	char* str;
 	char* end;
 
 	argc = 0;
 
-	/* count words, where a "word" is a sequence of characters of nonzero
-	   length followed by whitespace */
-	for(ch = s; ch < (strlen(s) + s); ch++) {
-		/* add one to argc when whitespace is found */
-		argc += isWhitespace(*ch);
-
-		/* skip th rest of the whitespace */
-		for(; isWhitespace(*ch); ch++) {
-			/* Do Nothing */
-		}
+	str = s;
+	while(isWhitespace(*str) && *str != '\0') {
+		str++;
 	}
 
-	/* allocate an array of strings one larger than the number of arguments,
-	   so that there is room for the final NULL */
+	if(strlen(str) != 0) {
+		ch = str;
+		while(ch < ((strlen(str) + str + 1))) {
+			argc += isWhitespace(*ch);
+
+			for(; isWhitespace(*ch); ch++) {
+				/* Do Nothing */
+			}
+
+			ch++;
+		}
+	} else {
+		argc = 0;
+	}
+
 	*args = (char**) malloc((argc * (sizeof(char*)) + 1));
 	if(*args == NULL) goto fail;
 
-	ch = s;
-	end = s;
+	ch = str;
+	end = str;
 
-	/* copy each argument from s into args */
 	for(i = 0; i < argc; i++) {
-		/* move end to the end of the current word */
 		for(end = ch; !isWhitespace(*end); end++) {
 			/* Do Nothing */
 		}
 
-		/* mark the end of the word with '\0' */
 		*end = '\0';
 
-		/* allocate a new string inside of args long enough for the string and a
-		   final '\0' */
 		*((*args) + i) = malloc((strlen(ch) + 1) * sizeof(char));
 		if(*((*args) + i) == NULL) goto fail;
 
-		/* copy the string from s to args */
 		strcpy(*((*args) + i), ch);
 
-		/* move the start of the word to the first non-whitespace character past
-		   end */
 		for(ch = end; isWhitespace(*ch); ch++) {
 			/* Do Nothing */
 		}
 	}
 
-	/* NULL terminate args */
 	(*((*args) + (argc))) = NULL; 
 
 	return argc;
 
-	/* return an error code */
 	fail:
 		return -1;
 }

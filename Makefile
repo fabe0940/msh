@@ -1,9 +1,9 @@
 CC = gcc
 CFLAGS = $(WARNINGS) $(DEBUG) $(DEFINE)
-#DEBUG = -g
+DEBUG = -g
 #DEFINE = -DVAR=VAL
 WARNINGS = -ansi -pedantic -Wall -Wextra -D__USE_FIXED_PROTOTYPES__ --std=c89
-OBJ = clean.o err.o exec.o hist.o init.o list.o main.o makearg.o read.o update.o
+OBJ = clean.o err.o eval.o exec.o hist.o init.o list.o main.o makearg.o read.o update.o
 #LIBS = -lncurses
 APPLICATION_NAME = msh
 
@@ -23,6 +23,9 @@ clean.o : clean.c clean.h cmd.h env.h hist.h status.h
 
 err.o : err.h
 	$(CC) $(CFLAGS) -c err.c $(LIBS)
+
+eval.o : eval.c eval.h status.h
+	$(CC) $(CFLAGS) -c eval.c $(LIBS)
 
 exec.o : exec.c cmd.h err.h exec.h makearg.h status.h
 	$(CC) $(CFLAGS) -c exec.c $(LIBS)

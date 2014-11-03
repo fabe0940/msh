@@ -19,6 +19,7 @@ void mshEval(status* s) {
 	s->command = NULL;
 
 	_replace(&head, "!!", s->history->cmd);
+	_replace(&head, "$PATH", getenv("PATH"));
 	histAdd(&(s->history), listToString(head), s->histfile);
 	_split(&(s->command), head, ';');
 

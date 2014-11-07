@@ -7,6 +7,7 @@
 #define ERR_FORK "msh: unable to fork"
 #define ERR_MALLOC "msh: unable to allocate memory"
 #define ERR_NULL "msh: invalid null pointer"
+#define ERR_PIPE "msh: unable to initialize pipe"
 #define ERR_UNKNOWN "msh: unknown error"
 
 void error(const char* msg);

@@ -13,8 +13,22 @@
 #include "makearg.h"
 #include "status.h"
 
+#define STATE_ONLY 0
+#define STATE_FIRST 1
+#define STATE_MID 2
+#define STATE_LAST 3
+
+#define PIPE_READ 0
+#define PIPE_WRITE 1
+
+#define STDIN 0
+#define STDOUT 1
+
+#define BUFFSIZE 1048576
+
 void _exec(cmdNode* l);
 
+/* execute a fully evaluated list of commands */
 void mshExec(status* s) {
 	int argc;
 	int i;
@@ -28,50 +42,66 @@ void mshExec(status* s) {
 	n = s->command;
 	hist = s->history;
 
+	/* loop through each command */
 	while(n != NULL) {
+		/* loop through each command in a pipe chain */
 		cmd = NULL;
 		evalSplit(&cmd, n->command, '|');
 
-		while(cmd != NULL) {
-			str = listToString(cmd->command);
-			argc = makearg(str, &argv);
-			free(str);
-			if(argc == -1) {
-				error("makearg: invalid input");
-			} else if(argc == 0) {
-				break;
-			} else {
-				if(!strcmp(argv[0], "exit")) {
-					s->running = 0;
-				} else if(!strcmp(argv[0], "history")) {
-					histPrint(&(s->history));
-				} else if(!strcmp(argv[0], "cd")) {
-					chdir(argv[1]);
-				} else if(!strcmp(argv[0], "export")) {
-					if(argc != 2) {
+		/* check for builtins */
+		str = listToString(cmd->command);
+		argc = makearg(str, &argv);
+		free(str);
+
+		/* parsing error */
+		if(argc == -1) {
+			error("makearg: invalid input");
+		/* no command */
+		} else if(argc == 0) {
+			break;
+		} else {
+			/* exit the shell */
+			if(!strcmp(argv[0], "exit")) {
+				s->running = 0;
+			/* print history */
+			} else if(!strcmp(argv[0], "history")) {
+				histPrint(&(s->history));
+			/* change directory */
+			} else if(!strcmp(argv[0], "cd")) {
+				chdir(argv[1]);
+			/* change the PATH variable */
+			/* note that export only works for PATH, i.e
+				$ export PATH=newval
+				This *is* case and space sensitive. */
+			} else if(!strcmp(argv[0], "export")) {
+				/* check for the proper number of arguments */
+				if(argc != 2) {
+					error(ERR_EXPORT);
+				}
+
+				/* check for well formed input */
+				i = 0;
+				while(argv[1][i] != '=') {
+					if(argv[1][i] != litPath[i]) {
 						error(ERR_EXPORT);
 					}
 
-					i = 0;
-					while(argv[1][i] != '=') {
-						if(argv[1][i] != litPath[i]) {
-							error(ERR_EXPORT);
-						}
-
-						i++;
-					}
 					i++;
-
-					setenv("PATH", argv[1] + i, 1);
-				} else {
-					_exec(cmd);
 				}
+				i++;
 
-				for(i = 0; argv[i] != NULL; i++) {
-					free(argv[i]);
-				}
-				free(argv);
+				/* update the path */
+				setenv("PATH", argv[1] + i, 1);
+			} else {
+				/* not a builtin, execute it */
+				_exec(cmd);
 			}
+
+			/* clean up data structures */
+			for(i = 0; argv[i] != NULL; i++) {
+				free(argv[i]);
+			}
+			free(argv);
 
 			cmd = cmd->next;
 		}
@@ -82,109 +112,130 @@ void mshExec(status* s) {
 	return;
 }
 
-#ifdef PIPING
-
 void _exec(cmdNode* l) {
-	int i;
 	int argc;
 	int status;
-	int pfd[2];
+	int state;
 	pid_t pid;
-	char ch;
+	char inbuff[BUFFSIZE];
+	char outbuff[BUFFSIZE];
+	int inpipe[2];
+	int outpipe[2];
 	char* str;
 	char** argv;
 	cmdNode* n;
 
+	memset(inbuff, '\0', BUFFSIZE);
+	memset(outbuff, '\0', BUFFSIZE);
+
+	/* loop through all commands */
 	n = l;
+	state = STATE_FIRST;
+	while(n != NULL) {
+		if(n == l && n->next == NULL) {
+			state = STATE_ONLY;
+		} else if(n == l) {
+			state = STATE_FIRST;
+		} else if (n->next == NULL) {
+			state = STATE_LAST;
+		} else {
+			state = STATE_MID;
+		}
 
-	pid = fork();
+		/* create pipes */
 
-	if(pid == -1) {
-		error(ERR_FORK);
-	} else if(pid == 0) {
-		while(n != NULL) {
-			pipe(pfd);
-			pid = fork();
+		if (pipe(inpipe) == -1) {
+			error(ERR_PIPE);
+		}
 
-			if(pid == -1) {
-				error(ERR_FORK);
-			} else if(pid == 0) {
-				close(pfd[1]);
-				dup2(pfd[0], 0);
-				close(pfd[0]);
-				fprintf(stdout, "pid: %i\n", pid);
-				while((ch = fgetc(stdin)) != EOF) {
-					fputc(ch, stdout);
-				}
-				exit(0);
-			} else if(pid > 0) {
-				str = listToString(n->command);
-				argc = makearg(str, &argv);
-				free(str);
+		if (pipe(outpipe) == -1) {
+			error(ERR_PIPE);
+		}
 
-				close(pfd[0]);
-				dup2(pfd[1], 1);
-				close(pfd[1]);
+		/* fork a child to exec */
 
-				fprintf(stdout, "pid: %i\n", pid);
-				for(i = 0; argv[i] != NULL; i++) {
-					fprintf(stdout, "[%i] %s\n", i, argv[i]);
-				}
+		if ((pid = fork()) < 0) {
+			error(ERR_FORK);
+		}
 
-				if(execvp(argv[0], argv) == -1) {
-					error(ERR_EXEC);
-				}
-
-				wait(&status);
-
-				exit(0);
+		if (pid == 0) {
+			if(state == STATE_ONLY) {
+				close(inpipe[PIPE_READ]);
+				close(inpipe[PIPE_WRITE]);
+				close(outpipe[PIPE_READ]);
+				close(outpipe[PIPE_WRITE]);
+			} else if(state == STATE_FIRST) {
+				close(inpipe[PIPE_READ]);
+				close(inpipe[PIPE_WRITE]);
+				close(outpipe[PIPE_READ]);
+				dup2(outpipe[PIPE_WRITE], STDOUT);
+				close(outpipe[PIPE_WRITE]);
+			} else if(state == STATE_MID) {
+				dup2(inpipe[PIPE_READ], STDIN);
+				close(inpipe[PIPE_READ]);
+				dup2(outpipe[PIPE_WRITE], STDOUT);
+				close(outpipe[PIPE_WRITE]);
+			} else if(state == STATE_LAST) {
+				close(inpipe[PIPE_WRITE]);
+				dup2(inpipe[PIPE_READ], STDIN);
+				close(inpipe[PIPE_READ]);
+				close(outpipe[PIPE_READ]);
+				close(outpipe[PIPE_WRITE]);
 			}
 
-			n = n->next;
-		}
-		exit(0);
-	} else if(pid > 0) {
-		wait(&status);
-	}
-
-	return;
-}
-
-#endif
-
-#ifdef NOPIPING
-
-void _exec(cmdNode* l) {
-	int argc;
-	int status;
-	pid_t pid;
-	char* str;
-	char** argv;
-	cmdNode* n;
-
-	n = l;
-	while(n != NULL) {
-		pid = fork();
-
-		if(pid == -1) {
-			error(ERR_FORK);
-		} else if(pid == 0) {
+			/* finalize data structures */
 			str = listToString(n->command);
 			argc = makearg(str, &argv);
 			free(str);
 
+			/* execute command */
 			if(execvp(argv[0], argv) == -1) {
-				error(ERR_EXEC);
+				fprintf(stderr, "msh: command not found: %s\n", argv[0]);
 			}
 			exit(0);
-		} else if(pid > 0) {
-			wait(&status);
+		} else {
+			if(state == STATE_ONLY) {
+				close(inpipe[PIPE_READ]);
+				close(inpipe[PIPE_WRITE]);
+				close(outpipe[PIPE_READ]);
+				close(outpipe[PIPE_WRITE]);
+			} else if(state == STATE_FIRST) {
+				close(inpipe[PIPE_READ]);
+				close(inpipe[PIPE_WRITE]);
+				close(outpipe[PIPE_WRITE]);
+				dup2(outpipe[PIPE_READ], STDIN);
+				close(outpipe[PIPE_READ]);
+			} else if(state == STATE_MID) {
+				dup2(inpipe[PIPE_WRITE], STDOUT);
+				close(inpipe[PIPE_WRITE]);
+				dup2(outpipe[PIPE_READ], STDIN);
+				close(outpipe[PIPE_READ]);
+			} else if(state == STATE_LAST) {
+				close(inpipe[PIPE_READ]);
+				dup2(inpipe[PIPE_WRITE], STDOUT);
+				close(inpipe[PIPE_WRITE]);
+				close(outpipe[PIPE_READ]);
+				close(outpipe[PIPE_WRITE]);
+			}
+
+			if(state == STATE_FIRST || state == STATE_MID) {
+				read(STDIN, (void*) outbuff, BUFFSIZE);
+			}
+
+			if(state == STATE_MID || state == STATE_LAST) {
+				write(STDOUT, (void*) inbuff, BUFFSIZE);
+			}
+
+			if(state == STATE_LAST || state == STATE_ONLY) {
+				wait(&status);
+			}
 		}
+
+		memcpy(inbuff, outbuff, BUFFSIZE);
+		memset(outbuff, '\0', BUFFSIZE);
 
 		n = n->next;
 	}
 
 	return;
 }
-
-#endif

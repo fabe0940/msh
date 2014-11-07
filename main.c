@@ -14,16 +14,13 @@
 #include "update.h"
 
 /* msh main loop */
-int main(int argc, char** argv) {
-	int i;
+int main(void) {
 	status s;
 
+	/* initialize */
 	mshInit(&s);
 
-	for(i = 1; i < argc; i++) {
-		fprintf(stdout, "%s\n", argv[i]);
-	}
-
+	/* main loop */
 	while(s.running) {
 		mshRead(&s);
 		mshEval(&s);
@@ -31,6 +28,7 @@ int main(int argc, char** argv) {
 		mshUpdate(&s);
 	}
 
+	/* clean up */
 	mshClean(&s);
 
 	exit(0);

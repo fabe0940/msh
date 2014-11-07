@@ -1,8 +1,7 @@
 CC = gcc
-CFLAGS = $(WARNINGS) $(DEBUG) $(DEFINE)
+CFLAGS = $(WARNINGS) $(DEBUG) $(DEFINE) -O0
 DEBUG = -g
-#DEFINE = -DPIPING
-DEFINE = -DNOPIPING
+DEFINE = -DPIPING
 WARNINGS = -ansi -pedantic -Wall -Wextra -D__USE_FIXED_PROTOTYPES__ --std=gnu89
 OBJ = clean.o err.o eval.o exec.o hist.o init.o list.o main.o makearg.o read.o update.o
 #LIBS = -lncurses
@@ -25,10 +24,10 @@ clean.o : clean.c clean.h cmd.h env.h hist.h status.h
 err.o : err.h
 	$(CC) $(CFLAGS) -c err.c $(LIBS)
 
-eval.o : eval.c eval.h status.h
+eval.o : eval.c cmd.h err.h eval.h list.h status.h
 	$(CC) $(CFLAGS) -c eval.c $(LIBS)
 
-exec.o : exec.c cmd.h err.h exec.h makearg.h status.h
+exec.o : exec.c cmd.h err.h eval.h exec.h hist.h list.h makearg.h status.h
 	$(CC) $(CFLAGS) -c exec.c $(LIBS)
 
 hist.o : hist.c err.h hist.h
@@ -40,16 +39,16 @@ init.o : init.c err.h hist.h init.h status.h
 list.o : list.c err.h list.h
 	$(CC) $(CFLAGS) -c list.c $(LIBS)
 
-main.o : main.c clean.h cmd.h init.h read.h status.h update.h
+main.o : main.c clean.h cmd.h eval.h exec.h init.h read.h status.h update.h
 	$(CC) $(CFLAGS) -c main.c $(LIBS)
 
 makearg.o : makearg.c makearg.h
 	$(CC) $(CFLAGS) -c makearg.c $(LIBS)
 
-read.o : read.c err.h hist.h list.h read.h status.h
+read.o : read.c cmd.h err.h hist.h list.h read.h status.h
 	$(CC) $(CFLAGS) -c read.c $(LIBS)
 
-update.o : update.c err.h hist.h status.h update.h
+update.o : update.c cmd.h status.h update.h
 	$(CC) $(CFLAGS) -c update.c $(LIBS)
 
 clean :

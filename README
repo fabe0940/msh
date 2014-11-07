@@ -9,7 +9,8 @@ Linux command.
 
 COMPILING
 
-Just run the `make` command.
+Run the `make` command. An executable named `msh` will be generated in the
+project's home directory.
 
 
 RUNNING
@@ -23,8 +24,40 @@ Now run it!
 $ ./msh
 
 
+COMMANDS AND SYNTAX
+
+This shell should support a subset of bash syntax.
+
+To do multiple commands on one line, seperate them with semicolons.
+
+$ cmd_1 ; cmd_2
+
+To get or set the PATH variable, use $PATH and export, respectively.
+
+$ export PATH=$PATH:/new/path/to/append
+
+To view history, run the `history` command.
+
+$ history
+
+The command `!!` will rerun the last command issued, and the command `!N` will
+rerun command number N if N is still stored in history.
+
+Pipes do not work in this shell at the moment. They don't break anything, but
+their stdin/stdout are not connected. The command
+
+$ ls | wc -l
+
+is equivalend to
+
+$ ls ; wc -l
+
+To change directories, use the `cd` command.
+
+$ cd /path/to/dir/
+$ cd ../relative/dir/path/
+
+
 ABOUT
 
-Written on 28 September 2014
-
-Licensed under the WTF Public License.
+Written on 2 November 2014 by Mason Fabel

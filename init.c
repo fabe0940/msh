@@ -8,6 +8,7 @@
 
 #include "init.h"
 
+/* initialize status structures */
 void mshInit(status* s) {
 	size_t len;
 	char* fname;
@@ -18,14 +19,18 @@ void mshInit(status* s) {
 	s->environment = NULL;
 	s->history = NULL;
 
+	/* set up history */
 	histInit(&(s->history));
 
+	/* get name of history file */
 	fname = malloc((1 + strlen(getenv("HOME")) + strlen("/.msh_history")) * sizeof(char));
 	if(fname == NULL) {
 		error(ERR_MALLOC);
 	}
 
 	sprintf(fname, "%s/.msh_history", getenv("HOME"));
+
+	/* read history from history file into history structures */
 
 	hist = fopen(fname, "r");
 	if(hist == NULL) {
@@ -38,6 +43,7 @@ void mshInit(status* s) {
 		fclose(hist);
 	}
 
+	/* open history file for appending */
 	s->histfile = fopen(fname, "a");
 	if(s->histfile == NULL) {
 		error(ERR_FILE);
@@ -45,6 +51,7 @@ void mshInit(status* s) {
 
 	free(fname);
 
+	/* we're good to go! */
 	s->running = 1;
 
 	return;

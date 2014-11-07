@@ -125,6 +125,7 @@ void _exec(cmdNode* l) {
 	char** argv;
 	cmdNode* n;
 
+	/* Clear buffers */
 	memset(inbuff, '\0', BUFFSIZE);
 	memset(outbuff, '\0', BUFFSIZE);
 
@@ -132,6 +133,7 @@ void _exec(cmdNode* l) {
 	n = l;
 	state = STATE_FIRST;
 	while(n != NULL) {
+		/* calculate state */
 		if(n == l && n->next == NULL) {
 			state = STATE_ONLY;
 		} else if(n == l) {
@@ -159,6 +161,7 @@ void _exec(cmdNode* l) {
 		}
 
 		if (pid == 0) {
+			/* initialize pipes */
 			if(state == STATE_ONLY) {
 				close(inpipe[PIPE_READ]);
 				close(inpipe[PIPE_WRITE]);
@@ -194,6 +197,7 @@ void _exec(cmdNode* l) {
 			}
 			exit(0);
 		} else {
+			/* initialize pipes */
 			if(state == STATE_ONLY) {
 				close(inpipe[PIPE_READ]);
 				close(inpipe[PIPE_WRITE]);
@@ -218,19 +222,23 @@ void _exec(cmdNode* l) {
 				close(outpipe[PIPE_WRITE]);
 			}
 
+			/* read from child output */
 			if(state == STATE_FIRST || state == STATE_MID) {
 				read(STDIN, (void*) outbuff, BUFFSIZE);
 			}
 
+			/* write to child input */
 			if(state == STATE_MID || state == STATE_LAST) {
 				write(STDOUT, (void*) inbuff, BUFFSIZE);
 			}
 
+			/* wait for child process to finish */
 			if(state == STATE_LAST || state == STATE_ONLY) {
 				wait(&status);
 			}
 		}
 
+		/* swap buffers */
 		memcpy(inbuff, outbuff, BUFFSIZE);
 		memset(outbuff, '\0', BUFFSIZE);
 
